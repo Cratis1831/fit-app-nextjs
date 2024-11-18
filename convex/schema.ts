@@ -5,6 +5,7 @@ export default defineSchema({
   workoutSession: defineTable({
     userId: v.string(),
     workoutDate: v.string(),
+    workoutName: v.string(),
     workoutNote: v.optional(v.string()),
     exerciseSet: v.optional(
       v.array(
