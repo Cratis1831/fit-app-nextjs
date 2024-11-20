@@ -11,16 +11,20 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { api } from "@/convex/_generated/api";
+// import { Id } from "@/convex/_generated/dataModel";
 import { useMutation } from "convex/react";
 import { Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
 const CreateWorkoutSession = () => {
+  const router = useRouter();
   const createWorkout = useMutation(api.workout.createWorkoutSession);
 
   const [workoutName, setworkoutName] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // const [workoutSession, setWorkoutSession] = useState<Id<"workoutSession">>();
 
   const handleCreateWorkout = async (e: FormEvent) => {
     const userId = "ashkan_1984"; //TODO: get user id from auth
@@ -33,14 +37,16 @@ const CreateWorkoutSession = () => {
         workoutDate: date.toString(),
         workoutName,
       });
-
       console.log(data);
+      // setWorkoutSession(data);
+      router.push(`/workout/${data}`);
     } catch (error) {
       console.error("Error creating workout session:", error);
+    } finally {
+      setIsOpen(false);
+      setworkoutName("");
+      setIsSubmitting(false);
     }
-    setIsOpen(false);
-    setworkoutName("");
-    setIsSubmitting(false);
   };
 
   return (
