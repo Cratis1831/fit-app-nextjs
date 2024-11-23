@@ -12,7 +12,6 @@ export const createWorkoutSession = mutation({
 
     const workoutSessionId = await ctx.db.insert("workoutSession", {
       userId: args.userId,
-
       workoutName: args.workoutName,
     });
 
@@ -34,7 +33,7 @@ export const getAllWorkouts = query({
   handler: async (ctx, args) => {
     const tasks = await ctx.db
       .query("workoutSession")
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .order("desc")
       .take(100);
     return tasks;
@@ -45,8 +44,19 @@ export const getAllWorkouts = query({
 export const getWorkoutById = query({
   args: { workoutId: v.id("workoutSession") },
   handler: async (ctx, args) => {
-    const workout = await ctx.db.get(args.workoutId);
-    return workout;
+    const workoutSession = await ctx.db.get(args.workoutId);
+
+    if (!workoutSession) {
+      throw new Error("Workout not found");
+    }
+
+    const workoutSets = await ctx.db
+      .query("workoutSets")
+      .withIndex("by_workoutId", (q) => q.eq("workoutId", workoutSession._id))
+      .order("desc")
+      .take(100);
+
+    return { workoutSession, workoutSets };
   },
 });
 
@@ -54,35 +64,48 @@ export const getWorkoutById = query({
 export const createExerciseSet = mutation({
   args: {
     workoutId: v.id("workoutSession"),
-    exerciseName: v.string(),
+    exerciseId: v.id("exercises"),
     reps: v.number(),
     sets: v.number(),
     weight: v.number(),
   },
   handler: async (ctx, args) => {
-    const exerciseSetId = await ctx.db.patch(args.workoutId, {});
+    const workoutSession = await ctx.db.get(args.workoutId);
 
-    return exerciseSetId;
+    if (!workoutSession) {
+      throw new Error("Workout not found");
+    }
+
+    const workoutSet = await ctx.db.insert("workoutSets", {
+      workoutId: args.workoutId,
+      exerciseId: args.exerciseId,
+      reps: args.reps,
+      setNumber: args.sets,
+      weight: args.weight,
+    });
+
+    return workoutSet;
   },
 });
 
 //get all workout sets by workout id
 export const getWorkoutSets = query({
-  args: { workoutId: v.string() },
+  args: { workoutId: v.id("workoutSession") },
   handler: async (ctx, args) => {
-    const tasks = await ctx.db
+    const workoutSets = await ctx.db
       .query("workoutSets")
-      .filter((q) => q.eq(q.field("workoutId"), args.workoutId))
+      .withIndex("by_workoutId", (q) => q.eq("workoutId", args.workoutId))
       .order("desc")
       .take(100);
-    return tasks;
+
+    return workoutSets;
   },
 });
 
 //get all exercises
 export const getAllExercises = query({
   handler: async (ctx) => {
-    const tasks = await ctx.db.query("exercises").take(100);
-    return tasks;
+    const exercises = await ctx.db.query("exercises").take(100);
+    return exercises;
   },
 });
